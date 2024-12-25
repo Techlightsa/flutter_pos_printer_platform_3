@@ -31,8 +31,8 @@ class USBPrinterService private constructor(private var mHandler: Handler?) {
 
     private val mUsbDeviceReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            val action = intent.action
-            if ((ACTION_USB_PERMISSION == action)) {
+            val action = intent.action            
+            if ((ACTION_USB_PERMISSION == action)) {               
                 synchronized(this) {
                     val usbDevice: UsbDevice? = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
@@ -51,8 +51,7 @@ class USBPrinterService private constructor(private var mHandler: Handler?) {
                         mHandler?.obtainMessage(STATE_USB_NONE)?.sendToTarget()
                     }
                 }
-            } else if ((UsbManager.ACTION_USB_DEVICE_DETACHED == action)) {
-
+            } else if ((UsbManager.ACTION_USB_DEVICE_DETACHED == action)) {                
                 if (mUsbDevice != null) {
                     Toast.makeText(context, mContext?.getString(R.string.device_off), Toast.LENGTH_LONG).show()
                     closeConnectionIfExists()
@@ -72,14 +71,21 @@ class USBPrinterService private constructor(private var mHandler: Handler?) {
     fun init(reactContext: Context?) {
         mContext = reactContext
         mUSBManager = mContext!!.getSystemService(Context.USB_SERVICE) as UsbManager
-        mPermissionIndent = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            PendingIntent.getBroadcast(mContext, 0, Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE)
-        } else {
-            PendingIntent.getBroadcast(mContext, 0, Intent(ACTION_USB_PERMISSION), 0)
-        }
+        mPermissionIndent = PendingIntent.getBroadcast(
+            mContext,
+            0,
+            Intent("com.flutter_pos_printer.USB_PERMISSION").apply {
+                setPackage(mContext?.packageName)
+            },
+            PendingIntent.FLAG_MUTABLE
+        )
         val filter = IntentFilter(ACTION_USB_PERMISSION)
         filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
-        mContext!!.registerReceiver(mUsbDeviceReceiver, filter)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            mContext!!.registerReceiver(mUsbDeviceReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            mContext!!.registerReceiver(mUsbDeviceReceiver, filter);
+        }
         Log.v(LOG_TAG, "ESC/POS Printer initialized")
     }
 
