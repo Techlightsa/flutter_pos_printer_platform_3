@@ -44,7 +44,9 @@ class USBPrinterService private constructor(private var mHandler: Handler?) {
                         state = STATE_USB_CONNECTED
                         mHandler?.obtainMessage(STATE_USB_CONNECTED)?.sendToTarget()
                     } else {
-                        Toast.makeText(context, mContext?.getString(R.string.user_refuse_perm) + ": ${usbDevice!!.deviceName}", Toast.LENGTH_LONG).show()
+                        val deviceName = usbDevice?.deviceName ?: "Unknown device"
+                        val userRefuseMessage = mContext?.getString(R.string.user_refuse_perm) ?: "User refused permission"
+                        Toast.makeText(context, "$userRefuseMessage: $deviceName", Toast.LENGTH_LONG).show()
                         state = STATE_USB_NONE
                         mHandler?.obtainMessage(STATE_USB_NONE)?.sendToTarget()
                     }
