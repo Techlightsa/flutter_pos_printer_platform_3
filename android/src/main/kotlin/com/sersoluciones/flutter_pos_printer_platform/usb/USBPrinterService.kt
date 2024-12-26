@@ -68,20 +68,30 @@ class USBPrinterService private constructor(private var mHandler: Handler?) {
         }
     }
 
+    @SuppressLint("MutableImplicitPendingIntent", "UnspecifiedImmutableFlag",
+        "UnspecifiedRegisterReceiverFlag"
+    )
     fun init(reactContext: Context?) {
         mContext = reactContext
         mUSBManager = mContext!!.getSystemService(Context.USB_SERVICE) as UsbManager
-        mPermissionIndent = PendingIntent.getBroadcast(
-            mContext,
-            0,
-            Intent("com.flutter_pos_printer.USB_PERMISSION").apply {
-                setPackage(mContext?.packageName)
-            },
-            PendingIntent.FLAG_MUTABLE
-        )
+        mPermissionIndent = if (android.os.Build.VERSION.SDK_INT > android.os.Build.VERSION_CODES.TIRAMISU) {
+            PendingIntent.getBroadcast(
+                mContext,
+                0,
+                Intent(ACTION_USB_PERMISSION).apply {
+                    setPackage(mContext?.packageName)
+                },
+                PendingIntent.FLAG_MUTABLE
+            )
+        } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            PendingIntent.getBroadcast(mContext, 0, Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_MUTABLE)
+        } else {
+            PendingIntent.getBroadcast(mContext, 0, Intent(ACTION_USB_PERMISSION), 0)
+        }
+
         val filter = IntentFilter(ACTION_USB_PERMISSION)
         filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        if (android.os.Build.VERSION.SDK_INT > android.os.Build.VERSION_CODES.TIRAMISU) {
             mContext!!.registerReceiver(mUsbDeviceReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
         } else {
             mContext!!.registerReceiver(mUsbDeviceReceiver, filter);
