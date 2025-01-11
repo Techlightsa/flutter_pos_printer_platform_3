@@ -103,15 +103,41 @@ class TcpPrinterConnector implements PrinterConnector<TcpPrinterInput> {
     }
   }
 
-  @override
+  // @override
+  // Future<bool> connect(TcpPrinterInput model) async {
+  //   try {
+  //     _socket = await Socket.connect(model.ipAddress, model.port, timeout: model.timeout);
+  //     return true;
+  //   } catch (e) {
+  //     print(e);
+  //     return false;
+  //   }
+  // }
+
+    @override
   Future<bool> connect(TcpPrinterInput model) async {
-    try {
-      _socket = await Socket.connect(model.ipAddress, model.port, timeout: model.timeout);
-      return true;
-    } catch (e) {
-      print(e);
-      return false;
+    const int maxRetries = 10; // Maximum number of retries
+    for (int attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        _socket = await Socket.connect(model.ipAddress, model.port, timeout: model.timeout);
+        print('Connection successful on attempt $attempt');
+        return true; // Exit the loop if connection is successful
+      } catch (e) {
+        print('Error during network connection attempt ${model.ipAddress} __ $attempt: $e');
+        if (e.toString().contains('Connection reset by peer') || e.toString().contains('Connection timed out'))  {
+          if (attempt < maxRetries) {
+            print('Retrying connection... (Attempt $attempt/$maxRetries)');
+            await Future.delayed(Duration(seconds: 1)); // Wait before retrying
+          } else {
+            print('Max retries reached. Connection failed.');
+          }
+        } else {
+          print('Non-retryable error encountered: $e');
+          break; // Exit the loop for non-retryable errors
+        }
+      }
     }
+    return false; // Connection failed after all retries
   }
 
   /// [delayMs]: milliseconds to wait after destroying the socket
